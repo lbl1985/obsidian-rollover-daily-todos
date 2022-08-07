@@ -40,6 +40,7 @@ export default class RolloverTodosPlugin extends Plugin {
       templateHeading: 'none',
       deleteOnComplete: false,
       removeEmptyTodos: false,
+      rollOverUnderHeadings: false,
     }
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
   }
@@ -127,7 +128,7 @@ export default class RolloverTodosPlugin extends Plugin {
     if (!this.isDailyNotesEnabled()) {
       new Notice('RolloverTodosPlugin unable to rollover unfinished todos: Please enable Daily Notes, or Periodic Notes (with daily notes enabled).', 10000)
     } else {
-      const { templateHeading, deleteOnComplete, removeEmptyTodos } = this.settings;
+      const { templateHeading, deleteOnComplete, removeEmptyTodos, rollOverUnderHeadings } = this.settings;
 
       // check if there is a daily note from yesterday
       const lastDailyNote = this.getLastDailyNote();

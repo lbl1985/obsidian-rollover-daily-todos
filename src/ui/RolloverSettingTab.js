@@ -65,5 +65,15 @@ export default class RolloverSettingTab extends PluginSettingTab {
         })
       )
 
+    new Setting(this.containerEl)
+      .setName('Roll over items under headings')
+      .setDesc(`If your Todos are under certain headings and subheadings, such as Work/Home/Projects, etc. The Todos would be rolled out under those former headings. So you could keep you Todos organized as before. Meanwhile, if the headings are found within the templates, they would be added to the Templates headings as well. If they do not exist in the daily templates, the previous days headings would be put at the end of template headings. To always keep them in the desired order, you should add the corresponding headings into your daily templates.`)
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.rollOverUnderHeadings || false)
+        .onChange(value => {
+            this.plugin.settings.rollOverUnderHeadings = value;
+            this.plugin.saveSettings();
+        })
+      )
   }
 }

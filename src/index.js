@@ -82,12 +82,54 @@ export default class RolloverTodosPlugin extends Plugin {
     return sorted[1];
   }
 
-  async getAllUnfinishedTodos(file) {
+  /// If rollOverUnderHeadings == false, the return would be list of todos. 
+  /// If rollOverUnderHeadings == true, the return would be a dictionary with { '<heading1>': [list of todos], '<heading2>':[list of todos] ...}
+  /// we frontload the removeEmptyTodos logic into here for rollOverUnderHeadings.
+  async getAllUnfinishedTodos(file, rollOverUnderHeadings) {
     const contents = await this.app.vault.read(file);
     const unfinishedTodosRegex = /\t*- \[ \].*/g
-    const unfinishedTodos = Array.from(contents.matchAll(unfinishedTodosRegex)).map(([todo]) => todo)
+    const rHeader = /^#+ /g;
+    
+    if (!rollOverUnderHeadings)
+    {
+      const unfinishedTodos = Array.from(contents.matchAll(unfinishedTodosRegex)).map(([todo]) => todo)
+      return unfinishedTodos;
+    } 
+    else
+    {
+      let lines = lastDailyNoteContent.split('\n')
+      var n = lines.length;
+      var obj = {};
+      var currentSection = '';
+      for (var i = 0; i < n; i++) {
+          var line = lines[i];
+          if (rHeader.test(line)) {
+              currentSection = line;
+              obj[currentSection] = [];
+          }
+          if (unfinishedTodosRegex.test(line)) {
+            if (removeEmptyTodos) {
+              var trimmedLine = (line || "").trim();
+              if (trimmedLine == '- [ ]' || trimmedLine == '- [  ]') {
+                  console.log("found one empty log at ".concat(currentSection));
+                  continue;
+              }
+            }
+            obj[currentSection].push(line);
+          }
+      }
+      return obj
+    }
+  }
 
-    return unfinishedTodos;
+  /// Get total todos from the yesterdayToDoStructure
+  getTodoCount(obj)
+  {
+    let nTodos = 0;
+    for (k in obj) {
+      nTodos += obj[k].length;
+    }
+    return nTodos;
   }
 
   async sortHeadersIntoHeirarchy(file) {
@@ -139,10 +181,14 @@ export default class RolloverTodosPlugin extends Plugin {
 
       // get unfinished todos from yesterday, if exist
       let todos_yesterday = await this.getAllUnfinishedTodos(lastDailyNote)
-      if (todos_yesterday.length == 0) {
+      if (
+          (!rollOverUnderHeadings && todos_yesterday.length == 0)
+          || (rollOverUnderHeadings && this.getTodoCount(todos_yesterday) == 0)
+        ) 
+      {
         console.log(`rollover-daily-todos: 0 todos found in ${lastDailyNote.basename}.md`)
         return;
-      }
+      } 
 
       // setup undo history
       let undoHistoryInstance = {

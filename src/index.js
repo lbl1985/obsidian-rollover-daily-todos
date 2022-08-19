@@ -94,7 +94,7 @@ export default class RolloverTodosPlugin extends Plugin {
   /// If rollOverUnderHeadings == false, the return would be list of todos. 
   /// If rollOverUnderHeadings == true, the return would be a dictionary with { '<heading1>': [list of todos], '<heading2>':[list of todos] ...}
   /// we frontload the removeEmptyTodos logic into here for rollOverUnderHeadings.
-  async getAllUnfinishedTodos(file, rollOverUnderHeadings) {
+  async getAllUnfinishedTodos(file, rollOverUnderHeadings, removeEmptyTodos) {
     const contents = await this.app.vault.read(file);
     const unfinishedTodosRegex = /\t*- \[ \].*/i
     const rHeader = /^#+ /g;
@@ -106,7 +106,7 @@ export default class RolloverTodosPlugin extends Plugin {
     } 
     else
     {
-      let lines = lastDailyNoteContent.split('\n')
+      let lines = contents.split('\n')
       var n = lines.length;
       var obj = {};
       var currentSection = '';
@@ -131,7 +131,7 @@ export default class RolloverTodosPlugin extends Plugin {
     }
   }
 
-  async generateTodayBasedOnTemplateAndStructuredTodos(dailyNoteContent, todos_today) {
+  generateTodayBasedOnTemplateAndStructuredTodos(dailyNoteContent, todos_today) {
     var dailyLines = dailyNoteContent.split('\n');
     for (var i = 0; i < dailyLines.length; i++) {
         var line = dailyLines[i];
@@ -148,7 +148,7 @@ export default class RolloverTodosPlugin extends Plugin {
   getTodoCount(obj)
   {
     let nTodos = 0;
-    for (k in obj) {
+    for (var k in obj) {
       nTodos += obj[k].length;
     }
     return nTodos;
@@ -202,7 +202,7 @@ export default class RolloverTodosPlugin extends Plugin {
       //this.sortHeadersIntoHeirarchy(lastDailyNote)
 
       // get unfinished todos from yesterday, if exist
-      let todos_yesterday = await this.getAllUnfinishedTodos(lastDailyNote)
+      let todos_yesterday = await this.getAllUnfinishedTodos(lastDailyNote, rollOverUnderHeadings, removeEmptyTodos)
       if (
           (!rollOverUnderHeadings && todos_yesterday.length == 0)
           || (rollOverUnderHeadings && this.getTodoCount(todos_yesterday) == 0)
@@ -228,9 +228,8 @@ export default class RolloverTodosPlugin extends Plugin {
       let todosAdded = 0
       let emptiesToNotAddToTomorrow = 0
       if (rollOverUnderHeadings) {
-        // we have already front load the removeEmptyTodos
-        todos_today = todos_yesterday
-        todosAdded = this.getTodoCount(todos_today)
+        // we have already front load the removeEmptyTodos        
+        todosAdded = this.getTodoCount(todos_yesterday)
       } else {
         let todos_today = !removeEmptyTodos ? todos_yesterday : []
         if (removeEmptyTodos) {
@@ -278,7 +277,7 @@ export default class RolloverTodosPlugin extends Plugin {
           }
         } else {
           /// rollOverUnderHeadings would ignore the template heading setting
-          dailyNoteContent = this.generateTodayBasedOnTemplateAndStructuredTodos(dailyNoteContent, todos_today)
+          dailyNoteContent = this.generateTodayBasedOnTemplateAndStructuredTodos(dailyNoteContent, todos_yesterday);
         }
         
 

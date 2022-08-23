@@ -132,14 +132,43 @@ export default class RolloverTodosPlugin extends Plugin {
   }
 
   generateTodayBasedOnTemplateAndStructuredTodos(dailyNoteContent, todos_today) {
+    const toDoDuplicates = /(?<task>\t*- \[ \].* x *)(?<duplicates>\d+)/i;
     var dailyLines = dailyNoteContent.split('\n');
+    var currentHeader = ''
+    var currentHeaderIndex = 0
     for (var i = 0; i < dailyLines.length; i++) {
-        var line = dailyLines[i];
-        if (line in todos_today) {
-            var delta = todos_today[line].length;
-            dailyLines.insert(i + 1, todos_today[line]);
-            i = i + delta;
+      // where the line is the string coming from template file
+      var line = dailyLines[i];
+      // If there is a new header from template. the currentHeader would be either empty or belong to previous state
+      if (line in todos_today) {
+        currentHeader = line
+        currentHeaderIndex = i
+        continue
+      }
+        // if any todos in the subsection of  todos_today[line] contains the template task (line). we would add x <number> to demonstrate 
+        // how many times this item has to be duplicated
+      if (currentHeader != ''){
+        for (var index = 0; index < todos_today[currentHeader].length; index ++) {
+          var incomingString = todos_today[currentHeader][index];
+          if (line == incomingString) {
+            // If we see the same item shows up twice (the first time for repeated template items show up more than once)
+            dailyLines[i] = line + ' x 2'
+            todos_today[currentHeader].splice(index, 1)
+          } else if (incomingString.includes(line)) {
+            var matches = toDoDuplicates.exec(incomingString);
+            if (matches != null && matches.groups != null) {
+              // update the x <num> into x <num + 1>
+              dailyLines[i] = matches.groups.task + (parseInt(matches.groups.duplicates) + 1).toString();
+              todos_today[currentHeader].splice(index, 1)
+            }
+          }
         }
+      }
+        
+      if (i < (dailyLines.length - 1) && dailyLines[i+1].startsWith('#')) {
+        dailyLines.insert(i + 1, todos_today[currentHeader]);
+        i = i + todos_today[currentHeader].length;
+      }
     }
     return "".concat(dailyLines.join('\n'))
   }

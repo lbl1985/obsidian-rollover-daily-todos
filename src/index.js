@@ -135,19 +135,19 @@ export default class RolloverTodosPlugin extends Plugin {
     const toDoDuplicates = /(?<task>\t*- \[ \].* x *)(?<duplicates>\d+)/i;
     var dailyLines = dailyNoteContent.split('\n');
     var currentHeader = ''
-    var currentHeaderIndex = 0
+    var currentHeaderIndex = 0; // We will insert the content from previous daily file ahead of the template contents
     for (var i = 0; i < dailyLines.length; i++) {
       // where the line is the string coming from template file
       var line = dailyLines[i];
       // If there is a new header from template. the currentHeader would be either empty or belong to previous state
       if (line in todos_today) {
         currentHeader = line
-        currentHeaderIndex = i
+        currentHeaderIndex = i;
         continue
       }
         // if any todos in the subsection of  todos_today[line] contains the template task (line). we would add x <number> to demonstrate 
         // how many times this item has to be duplicated
-      if (currentHeader != ''){
+      if (currentHeader != '' && line != ''){
         for (var index = 0; index < todos_today[currentHeader].length; index ++) {
           var incomingString = todos_today[currentHeader][index];
           if (line == incomingString) {
@@ -165,9 +165,10 @@ export default class RolloverTodosPlugin extends Plugin {
         }
       }
         
-      if (i < (dailyLines.length - 1) && dailyLines[i+1].startsWith('#')) {
-        dailyLines.insert(i + 1, todos_today[currentHeader]);
+      if (i < (dailyLines.length - 1) && dailyLines[i+1].startsWith('#') && currentHeader != '') {
+        dailyLines.insert(currentHeaderIndex + 1, todos_today[currentHeader]);
         i = i + todos_today[currentHeader].length;
+        currentHeaderIndex = 0 // reset the currentHeaderIndex
       }
     }
     return "".concat(dailyLines.join('\n'))
